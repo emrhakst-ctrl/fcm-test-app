@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "251314154843",
+    "project_id": "prayertest-8434c",
+    "storage_bucket": "prayertest-8434c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:251314154843:android:65bbee20bc719480aefe7e",
+        "android_client_info": {
+          "package_name": "com.test.prayertest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgBx52xb5zBZ3-9uyLrawO8_Ott1K1DJ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
