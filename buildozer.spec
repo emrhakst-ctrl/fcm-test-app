@@ -17,6 +17,7 @@ android.permissions = INTERNET,WAKE_LOCK,VIBRATE,POST_NOTIFICATIONS,RECEIVE_BOOT
 android.api = 33
 android.minapi = 24
 android.ndk = 25b
+android.build_tools_version = 34.0.0
 android.accept_sdk_license = True
 android.gradle_dependencies = com.google.firebase:firebase-messaging:23.4.0
 android.enable_androidx = True
