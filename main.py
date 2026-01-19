@@ -3,153 +3,199 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.clock import Clock
-from android.runnable import run_on_ui_thread
-from jnius import autoclass, PythonJavaClass, java_method, cast
+from kivy.utils import platform
 import requests
 import traceback
 
-PythonActivity = autoclass('org.kivy.android.PythonActivity')
-FirebaseApp = autoclass('com.google.firebase.FirebaseApp')
-FirebaseMessaging = autoclass('com.google.firebase.messaging.FirebaseMessaging')
-ArrayList = autoclass('java.util.ArrayList')
+# -------------------------------------------------
+# ANDROID IMPORTLARI
+# -------------------------------------------------
+if platform == "android":
+    from android.runnable import run_on_ui_thread
+    from jnius import autoclass, PythonJavaClass, java_method
+
+    PythonActivity = autoclass("org.kivy.android.PythonActivity")
+    FirebaseApp = autoclass("com.google.firebase.FirebaseApp")
+    FirebaseMessaging = autoclass("com.google.firebase.messaging.FirebaseMessaging")
+else:
+    # Android değilse decorator boş geçsin
+    def run_on_ui_thread(func):
+        return func
+
 
 class FCMTestApp(App):
     fcm_token = None
     firebase_initialized = False
-    
+
     def build(self):
-        self.layout = BoxLayout(orientation='vertical', padding=20, spacing=10)
-        
-        self.status_label = Label(
-            text='FCM Test\\n\\nFirebase baslatiliyor...',
-            size_hint=(1, 0.6),
-            halign='center',
-            valign='middle',
-            font_size='16sp'
+        self.layout = BoxLayout(
+            orientation="vertical",
+            padding=20,
+            spacing=10
         )
-        self.status_label.bind(size=self.status_label.setter('text_size'))
-        
-        token_btn = Button(text='Token Al', size_hint=(1, 0.1), font_size='18sp')
-        token_btn.bind(on_press=lambda x: self.get_fcm_token())
-        
-        register_btn = Button(text='Backend Kayit', size_hint=(1, 0.1), font_size='18sp')
-        register_btn.bind(on_press=lambda x: self.register_to_backend())
-        
-        instant_btn = Button(text='Aninda Test', size_hint=(1, 0.1), font_size='18sp')
-        instant_btn.bind(on_press=lambda x: self.test_notification('instant'))
-        
-        delayed_btn = Button(text='10 Saniye', size_hint=(1, 0.1), font_size='18sp')
-        delayed_btn.bind(on_press=lambda x: self.test_notification('10s'))
-        
+
+        self.status_label = Label(
+            text="FCM Test\n\nFirebase baslatiliyor...",
+            size_hint=(1, 0.6),
+            halign="center",
+            valign="middle",
+            font_size="16sp"
+        )
+        self.status_label.bind(size=self.status_label.setter("text_size"))
+
+        btn_token = Button(
+            text="Token Al",
+            size_hint=(1, 0.1),
+            font_size="18sp"
+        )
+        btn_token.bind(on_press=lambda x: self.get_fcm_token())
+
+        btn_register = Button(
+            text="Backend Kayit",
+            size_hint=(1, 0.1),
+            font_size="18sp"
+        )
+        btn_register.bind(on_press=lambda x: self.register_to_backend())
+
+        btn_instant = Button(
+            text="Anlik Test",
+            size_hint=(1, 0.1),
+            font_size="18sp"
+        )
+        btn_instant.bind(on_press=lambda x: self.test_notification("instant"))
+
+        btn_delayed = Button(
+            text="10 Saniye Gecikmeli",
+            size_hint=(1, 0.1),
+            font_size="18sp"
+        )
+        btn_delayed.bind(on_press=lambda x: self.test_notification("10s"))
+
         self.layout.add_widget(self.status_label)
-        self.layout.add_widget(token_btn)
-        self.layout.add_widget(register_btn)
-        self.layout.add_widget(instant_btn)
-        self.layout.add_widget(delayed_btn)
-        
-        Clock.schedule_once(lambda dt: self.initialize_firebase(), 1)
+        self.layout.add_widget(btn_token)
+        self.layout.add_widget(btn_register)
+        self.layout.add_widget(btn_instant)
+        self.layout.add_widget(btn_delayed)
+
+        if platform == "android":
+            Clock.schedule_once(self.initialize_firebase, 1)
+        else:
+            self.status_label.text = "Bu uygulama sadece Android'de calisir"
+
         return self.layout
-    
+
+    # -------------------------------------------------
+    # FIREBASE INIT (HATASIZ)
+    # -------------------------------------------------
     @run_on_ui_thread
-    def initialize_firebase(self):
+    def initialize_firebase(self, *args):
+        if platform != "android":
+            return
+
         try:
             self.status_label.text = "Firebase baslatiliyor..."
+
             activity = PythonActivity.mActivity
             context = activity.getApplicationContext()
-            
-            # Firebase'i basit şekilde başlat
+
+            # ❗ getApps KULLANILMAZ
             try:
-                # Zaten başlatılmış mı kontrol et
-                firebase_app = FirebaseApp.getInstance()
-                self.status_label.text = "Firebase zaten hazir!\\nToken Al basin"
-                self.firebase_initialized = True
-            except:
-                # İlk kez başlat
                 FirebaseApp.initializeApp(context)
-                self.status_label.text = "Firebase basladi!\\nToken Al basin"
-                self.firebase_initialized = True
-                
+                self.status_label.text = "Firebase baslatildi!\nToken Al basin"
+            except Exception:
+                # Zaten başlatılmış olabilir (normal)
+                self.status_label.text = "Firebase hazir!\nToken Al basin"
+
+            self.firebase_initialized = True
+
         except Exception as e:
-            self.status_label.text = f"Hata:\\n{str(e)}"
+            self.status_label.text = "Firebase Hatasi!"
+            print("Firebase init error:")
             print(traceback.format_exc())
-    
+
+    # -------------------------------------------------
+    # TOKEN ALMA
+    # -------------------------------------------------
     @run_on_ui_thread
     def get_fcm_token(self):
+        if platform != "android":
+            self.status_label.text = "Sadece Android'de calisir"
+            return
+
+        if not self.firebase_initialized:
+            self.status_label.text = "Firebase hazir degil, bekleyin..."
+            Clock.schedule_once(lambda dt: self.get_fcm_token(), 2)
+            return
+
         try:
-            if not self.firebase_initialized:
-                self.status_label.text = "Firebase henuz hazir degil"
-                Clock.schedule_once(lambda dt: self.get_fcm_token(), 2)
-                return
-            
             self.status_label.text = "Token aliniyor..."
             messaging = FirebaseMessaging.getInstance()
             task = messaging.getToken()
-            
+
             class TokenListener(PythonJavaClass):
-                __javainterfaces__ = ['com/google/android/gms/tasks/OnCompleteListener']
-                
+                __javainterfaces__ = ["com/google/android/gms/tasks/OnCompleteListener"]
+
                 def __init__(self, app):
                     super().__init__()
                     self.app = app
-                
-                @java_method('(Lcom/google/android/gms/tasks/Task;)V')
+
+                @java_method("(Lcom/google/android/gms/tasks/Task;)V")
                 def onComplete(self, task):
                     if task.isSuccessful():
-                        token = task.getResult()
-                        self.app.fcm_token = str(token)
-                        short = self.app.fcm_token[:60] + "..."
-                        self.app.status_label.text = f"Token alindi:\\n{short}\\n\\nBackend Kayit yapin"
-                        print(f"FCM Token: {self.app.fcm_token}")
+                        token = str(task.getResult())
+                        self.app.fcm_token = token
+                        self.app.status_label.text = (
+                            "Token alindi:\n"
+                            f"{token[:60]}...\n\n"
+                            "Backend Kayit yapabilirsiniz"
+                        )
+                        print("FCM TOKEN:", token)
                     else:
                         self.app.status_label.text = "Token alinamadi"
-            
+
             task.addOnCompleteListener(TokenListener(self))
-        except Exception as e:
-            self.status_label.text = f"Hata:\\n{str(e)}"
+
+        except Exception:
+            self.status_label.text = "Token hatasi!"
             print(traceback.format_exc())
-    
+
+    # -------------------------------------------------
+    # BACKEND KAYIT
+    # -------------------------------------------------
     def register_to_backend(self):
         if not self.fcm_token:
-            self.status_label.text = "Once token alin"
+            self.status_label.text = "Once token alin!"
             return
-        
+
         try:
             BACKEND_URL = "http://192.168.1.6:8000"
-            
+
             response = requests.post(
                 f"{BACKEND_URL}/register",
                 json={"fcm_token": self.fcm_token},
-                timeout=5
+                timeout=10
             )
-            
+
             if response.status_code == 200:
-                data = response.json()
-                self.status_label.text = f"Kayit basarili!\\nToplam cihaz: {data.get('total_devices')}"
+                self.status_label.text = "Backend kaydi basarili!"
             else:
                 self.status_label.text = f"Hata: {response.status_code}"
-        except requests.exceptions.Timeout:
-            self.status_label.text = "Zaman asimi\\nIP kontrol edin"
-        except requests.exceptions.ConnectionError:
-            self.status_label.text = "Baglanti hatasi\\nBackend calismiyor"
-        except Exception as e:
-            self.status_label.text = f"Hata:\\n{str(e)[:50]}"
-    
+
+        except Exception:
+            self.status_label.text = "Backend baglanti hatasi"
+            print(traceback.format_exc())
+
+    # -------------------------------------------------
+    # TEST BILDIRIM
+    # -------------------------------------------------
     def test_notification(self, test_type):
         try:
             BACKEND_URL = "http://192.168.1.6:8000"
-            
-            response = requests.post(f"{BACKEND_URL}/test/{test_type}", timeout=5)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if test_type == 'instant':
-                    self.status_label.text = "Bildirim gonderildi!\\nKontrol edin"
-                else:
-                    self.status_label.text = f"Zamanlandi\\nSaat: {data.get('scheduled_time')}"
-            else:
-                self.status_label.text = f"Hata: {response.status_code}"
-        except Exception as e:
-            self.status_label.text = f"Hata:\\n{str(e)[:50]}"
+            requests.post(f"{BACKEND_URL}/test/{test_type}", timeout=5)
+            self.status_label.text = "Bildirim gonderildi"
+        except Exception:
+            self.status_label.text = "Bildirim hatasi"
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     FCMTestApp().run()
