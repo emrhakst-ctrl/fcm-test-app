@@ -63,8 +63,8 @@ android.gradle_dependencies = com.google.firebase:firebase-messaging:23.4.1,andr
 android.add_gradle_repositories = google(), mavenCentral()
 
 # Meta-data (Firebase için)
-android.meta_data = com.google.firebase.messaging.default_notification_icon=@android:drawable/ic_dialog_info
-android.meta_data = com.google.firebase.messaging.default_notification_color=#FF6200EE
+android.meta_data.icon = com.google.firebase.messaging.default_notification_icon=@android:drawable/ic_dialog_info
+android.meta_data.color = com.google.firebase.messaging.default_notification_color=#FF6200EE
 
 # CPU mimarileri (modern cihazlar için)
 android.archs = arm64-v8a, armeabi-v7a
