@@ -52,9 +52,11 @@ jobs:
     echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
     echo "PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools:$HOME/android-sdk/build-tools/34.0.0" >> $GITHUB_ENV
 
-    - name: Accept licenses
-      run: |
-        yes | sdkmanager --licenses
+  - name: Accept licenses
+    run: |
+      yes | sdkmanager --licenses || true
+      yes | sdkmanager "build-tools;34.0.0"
+
 
     - name: Install SDK packages
       run: |
