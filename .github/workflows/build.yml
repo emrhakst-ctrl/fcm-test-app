@@ -52,13 +52,17 @@ jobs:
         export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
         mkdir -p $ANDROID_SDK_ROOT
         cd $ANDROID_SDK_ROOT
-
+    
         wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
         unzip commandlinetools-linux-*.zip
-
+    
         mkdir -p cmdline-tools/latest
         mv cmdline-tools/* cmdline-tools/latest/ || true
-
+    
+        # 🔥 Buildozer FIX
+        mkdir -p tools
+        ln -s cmdline-tools/latest tools || true
+    
         echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
         echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
         echo "PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/build-tools/34.0.0:$PATH" >> $GITHUB_ENV
