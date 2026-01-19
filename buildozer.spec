@@ -2,10 +2,14 @@
 title = Prayer Test
 package.name = prayertest
 package.domain = com.test
+
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas
+source.include_exts = py,png,jpg,kv,atlas,json
+
 version = 1.0
-requirements = python3,kivy,pyjnius,android,requests
+
+requirements = kivy,pyjnius,requests
+
 orientation = portrait
 fullscreen = 0
 
@@ -13,12 +17,21 @@ fullscreen = 0
 log_level = 2
 warn_on_root = 1
 
+# ================= ANDROID =================
+
 android.permissions = INTERNET,WAKE_LOCK,VIBRATE,POST_NOTIFICATIONS,RECEIVE_BOOT_COMPLETED
-android.api = 33
+
+android.api = 34
 android.minapi = 24
 android.ndk = 25b
+
 android.accept_sdk_license = True
-android.gradle_dependencies = com.google.firebase:firebase-messaging:23.4.0
 android.enable_androidx = True
-android.gradle_repositories = google(), mavenCentral()
-p4a.gradle_dependencies = classpath 'com.google.gms:google-services:4.4.0'
+
+android.gradle_dependencies = \
+    com.google.firebase:firebase-messaging:23.4.1
+
+android.add_gradle_repositories = google(), mavenCentral()
+
+android.add_src = google-services.json
+android.gradle_build_features = buildConfig
