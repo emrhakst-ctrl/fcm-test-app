@@ -79,8 +79,8 @@ jobs:
     # 8) Verify AIDL
     - name: Verify AIDL
       run: |
-        find ~/.buildozer -name aidl
-        aidl --version
+        which aidl
+        aidl --help
 
     # 9) Install Buildozer
     - name: Install Buildozer
