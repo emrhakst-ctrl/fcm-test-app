@@ -33,6 +33,13 @@ jobs:
           liblzma-dev \
           git
 
+  - name: Force Java 17
+    run: |
+      sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+      sudo update-alternatives --set javac /usr/lib/jvm/java-17-openjdk-amd64/bin/javac
+      java -version
+      javac -version
+
     - name: Install Android SDK
       run: |
         mkdir -p $HOME/android-sdk
