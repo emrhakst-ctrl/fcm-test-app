@@ -2,50 +2,51 @@ name: Build APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-22.04
-    
+
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    
-    - name: Setup Python
-      uses: actions/setup-python@v4
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
-    
+        python-version: "3.10"
+
     - name: Install system dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
+        sudo apt update
+        sudo apt install -y \
+          zip unzip git \
           openjdk-17-jdk \
-          wget unzip zip \
-          build-essential git \
-          libssl-dev libffi-dev \
-          zlib1g-dev libbz2-dev \
-          autoconf libtool \
-          pkg-config cmake ccache
-    
-    - name: Setup Java
+          libncurses5 \
+          libstdc++6 \
+          libffi-dev \
+          libssl-dev \
+          libsqlite3-dev \
+          zlib1g-dev \
+          liblzma-dev
+
+    - name: Install Buildozer & dependencies
       run: |
-        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-        echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
-    
-    - name: Install Python packages
+        python -m pip install --upgrade pip
+        pip install buildozer cython virtualenv
+
+    - name: Accept Android licenses
       run: |
-        pip install buildozer cython==0.29.33
-    
+        yes | sdkmanager --licenses || true
+
     - name: Build APK
       run: |
-        buildozer android debug
-    
+        buildozer -v android debug
+
     - name: Upload APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: prayer-test-apk
+        name: apk
         path: bin/*.apk
-        retention-days: 7
