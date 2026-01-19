@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    timeout-minutes: 90
     
     steps:
     - name: Checkout
@@ -20,32 +21,67 @@ jobs:
     
     - name: Install system dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq \
           openjdk-17-jdk \
           wget unzip zip \
           build-essential git \
           libssl-dev libffi-dev \
           zlib1g-dev libbz2-dev \
           autoconf libtool \
-          pkg-config cmake ccache
+          pkg-config cmake ccache \
+          python3-dev
     
     - name: Setup Java
       run: |
         echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
         echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
     
-    - name: Install Python packages
+    - name: Setup Android SDK
       run: |
+        mkdir -p $HOME/.buildozer/android/platform
+        cd $HOME/.buildozer/android/platform
+        
+        # Android SDK indirme
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip -q commandlinetools-linux-9477386_latest.zip
+        mkdir -p android-sdk/cmdline-tools
+        mv cmdline-tools android-sdk/cmdline-tools/latest
+        
+        export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
+        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
+        
+        # Lisansları kabul et
+        yes | sdkmanager --licenses || true
+        
+        # Build tools yükle (AIDL burada)
+        sdkmanager "platform-tools" "build-tools;33.0.2" "platforms;android-33"
+        
+        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+        echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+        echo "$ANDROID_SDK_ROOT/build-tools/33.0.2" >> $GITHUB_PATH
+    
+    - name: Install Buildozer
+      run: |
+        pip install --upgrade pip
         pip install buildozer cython==0.29.33
     
-    - name: Build APK
+    - name: Build APK with Buildozer
       run: |
         buildozer android debug
     
     - name: Upload APK
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
+      if: success()
       with:
         name: prayer-test-apk
         path: bin/*.apk
         retention-days: 7
+    
+    - name: Upload logs on failure
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: buildozer-logs
+        path: .buildozer/
+        retention-days: 3
