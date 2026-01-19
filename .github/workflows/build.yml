@@ -14,6 +14,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
     
+    - name: Setup Java 17
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+    
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
@@ -23,38 +29,26 @@ jobs:
       run: |
         sudo apt-get update -qq
         sudo apt-get install -y -qq \
-          openjdk-17-jdk \
           wget unzip zip \
           build-essential git \
           libssl-dev libffi-dev \
           zlib1g-dev libbz2-dev \
           autoconf libtool \
-          pkg-config cmake ccache \
-          python3-dev
-    
-    - name: Setup Java
-      run: |
-        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-        echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_PATH
+          pkg-config cmake ccache
     
     - name: Setup Android SDK
       run: |
-        mkdir -p $HOME/.buildozer/android/platform
-        cd $HOME/.buildozer/android/platform
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
+        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+        cd $ANDROID_SDK_ROOT/cmdline-tools
         
-        # Android SDK indirme
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
         unzip -q commandlinetools-linux-9477386_latest.zip
-        mkdir -p android-sdk/cmdline-tools
-        mv cmdline-tools android-sdk/cmdline-tools/latest
+        mv cmdline-tools latest
         
-        export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
         
-        # Lisansları kabul et
         yes | sdkmanager --licenses || true
-        
-        # Build tools yükle (AIDL burada)
         sdkmanager "platform-tools" "build-tools;33.0.2" "platforms;android-33"
         
         echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
@@ -66,7 +60,7 @@ jobs:
         pip install --upgrade pip
         pip install buildozer cython==0.29.33
     
-    - name: Build APK with Buildozer
+    - name: Build APK
       run: |
         buildozer android debug
     
@@ -78,10 +72,10 @@ jobs:
         path: bin/*.apk
         retention-days: 7
     
-    - name: Upload logs on failure
+    - name: Upload logs
       uses: actions/upload-artifact@v3
       if: failure()
       with:
         name: buildozer-logs
         path: .buildozer/
-        retention-days: 3
+        retention-days: 2
