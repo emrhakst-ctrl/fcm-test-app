@@ -45,28 +45,44 @@ jobs:
           autoconf libtool \
           pkg-config cmake ccache
 
-    - name: Setup Android SDK
-      run: |
-        export PATH="$JAVA_HOME/bin:$PATH"
-        export ANDROID_SDK_ROOT=$HOME/android-sdk
-        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-        cd $ANDROID_SDK_ROOT/cmdline-tools
-
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip -q commandlinetools-linux-9477386_latest.zip
-        mv cmdline-tools latest
-
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
-
-        echo "Using java at: $(which java)"
-        java -version
-
-        yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} --licenses || true
-        sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;33.0.2" "platforms;android-33"
-
-        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-        echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
-        echo "$ANDROID_SDK_ROOT/build-tools/33.0.2" >> $GITHUB_PATH
+  - name: Setup Android SDK
+    run: |
+      # Ensure we use the Java we installed
+      export PATH="$JAVA_HOME/bin:$PATH"
+  
+      # set SDK root where we'll install cmdline-tools and packages
+      export ANDROID_SDK_ROOT=$HOME/android-sdk
+      mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+      cd $ANDROID_SDK_ROOT/cmdline-tools
+  
+      # download & extract command line tools
+      wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+      unzip -q commandlinetools-linux-9477386_latest.zip
+      # ensure the layout is $ANDROID_SDK_ROOT/cmdline-tools/latest/{bin,...}
+      mv cmdline-tools latest
+  
+      # make sdkmanager available
+      export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
+  
+      # debug info
+      echo "Using java at: $(which java)"
+      java -version
+      sdkmanager --version || true
+  
+      # accept licenses (non-interactive)
+      yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} --licenses || true
+  
+      # explicitly install required packages (match the build-tools version your logs expect)
+      sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-33" "build-tools;36.1.0"
+  
+      # create symlink so buildozer finds the SDK where it expects it
+      mkdir -p $HOME/.buildozer/android/platform
+      ln -sfn ${ANDROID_SDK_ROOT} $HOME/.buildozer/android/platform/android-sdk
+  
+      # export for later steps
+      echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}" >> $GITHUB_ENV
+      echo "${ANDROID_SDK_ROOT}/platform-tools" >> $GITHUB_PATH
+      echo "${ANDROID_SDK_ROOT}/build-tools/36.1.0" >> $GITHUB_PATH
 
     - name: Install Buildozer
       run: |
