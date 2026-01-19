@@ -1,4 +1,5 @@
-name: Build APK
+name: Build Android APK
+
 on:
   push:
     branches: [ main ]
@@ -8,32 +9,38 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     timeout-minutes: 90
-
+    
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
-
+      uses: actions/checkout@v4
+      
     - name: Setup Java 17
       id: setup-java
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
-
-    - name: Export JAVA_HOME for following steps
-      run: echo "JAVA_HOME=${{ steps.setup-java.outputs.java-home }}" >> $GITHUB_ENV
-
-    - name: Verify Java
-      run: |
-        echo "JAVA_HOME=$JAVA_HOME"
-        java -version
-        which java
-
+        
     - name: Setup Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-
+        
+    - name: Cache Buildozer
+      uses: actions/cache@v4
+      with:
+        path: .buildozer
+        key: buildozer-${{ hashFiles('buildozer.spec') }}
+        restore-keys: buildozer-
+        
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: pip-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          pip-${{ runner.os }}-
+        
     - name: Install system dependencies
       run: |
         sudo apt-get update -qq
@@ -43,56 +50,66 @@ jobs:
           libssl-dev libffi-dev \
           zlib1g-dev libbz2-dev \
           autoconf libtool \
-          pkg-config cmake ccache
-
-  - name: Setup Android SDK
-    run: |
-      # Ensure we use the Java we installed
-      export PATH="$JAVA_HOME/bin:$PATH"
-  
-      # set SDK root where we'll install cmdline-tools and packages
-      export ANDROID_SDK_ROOT=$HOME/android-sdk
-      mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-      cd $ANDROID_SDK_ROOT/cmdline-tools
-  
-      # download & extract command line tools
-      wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-      unzip -q commandlinetools-linux-9477386_latest.zip
-      # ensure the layout is $ANDROID_SDK_ROOT/cmdline-tools/latest/{bin,...}
-      mv cmdline-tools latest
-  
-      # make sdkmanager available
-      export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
-  
-      # debug info
-      echo "Using java at: $(which java)"
-      java -version
-      sdkmanager --version || true
-  
-      # accept licenses (non-interactive)
-      yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} --licenses || true
-  
-      # explicitly install required packages (match the build-tools version your logs expect)
-      sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-33" "build-tools;36.1.0"
-  
-      # create symlink so buildozer finds the SDK where it expects it
-      mkdir -p $HOME/.buildozer/android/platform
-      ln -sfn ${ANDROID_SDK_ROOT} $HOME/.buildozer/android/platform/android-sdk
-  
-      # export for later steps
-      echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}" >> $GITHUB_ENV
-      echo "${ANDROID_SDK_ROOT}/platform-tools" >> $GITHUB_PATH
-      echo "${ANDROID_SDK_ROOT}/build-tools/36.1.0" >> $GITHUB_PATH
-
+          pkg-config cmake ccache \
+          libncurses5-dev libncursesw5-dev \
+          libtinfo5 libffi-dev libltdl-dev
+          
+    - name: Setup Android SDK & NDK
+      run: |
+        export JAVA_HOME=${{ steps.setup-java.outputs.path }}
+        export PATH="$JAVA_HOME/bin:$PATH"
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
+        
+        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+        cd $ANDROID_SDK_ROOT/cmdline-tools
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip -q commandlinetools-linux-9477386_latest.zip
+        mv cmdline-tools latest
+        
+        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
+        
+        echo "Accepting licenses..."
+        yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} --licenses || true
+        
+        echo "Installing SDK packages..."
+        sdkmanager --sdk_root=${ANDROID_SDK_ROOT} \
+          "platform-tools" \
+          "build-tools;34.0.0" \
+          "platforms;android-34" \
+          "ndk;25.1.8937393"
+        
+        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+        echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/25.1.8937393" >> $GITHUB_ENV
+        echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+        echo "$ANDROID_SDK_ROOT/build-tools/34.0.0" >> $GITHUB_PATH
+        
     - name: Install Buildozer
       run: |
-        pip install --upgrade pip
+        pip install --upgrade pip setuptools wheel
         pip install buildozer cython==0.29.33
-
+        
+    - name: Verify environment
+      run: |
+        echo "Java version:"
+        java -version
+        echo "Python version:"
+        python --version
+        echo "Buildozer version:"
+        buildozer --version
+        echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
+        echo "ANDROID_NDK_ROOT: $ANDROID_NDK_ROOT"
+        
     - name: Build APK
       run: |
+        export USE_SDK_WRAPPER=1
+        export GRADLE_OPTS="-Xmx4096m -Dorg.gradle.jvmargs='-Xmx4096m'"
         buildozer android debug
-
+        
+    - name: List build output
+      run: |
+        echo "Listing bin directory:"
+        ls -la bin/ || echo "No bin directory"
+        
     - name: Upload APK
       uses: actions/upload-artifact@v4
       if: success()
@@ -100,11 +117,19 @@ jobs:
         name: prayer-test-apk
         path: bin/*.apk
         retention-days: 7
-
-    - name: Upload logs
+        
+    - name: Upload build logs
       uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: buildozer-logs
-        path: .buildozer/
+        path: |
+          .buildozer/android/platform/build-*/build.log
+          .buildozer/**/*.log
         retention-days: 2
+        
+    - name: Show last 100 lines of build log on failure
+      if: failure()
+      run: |
+        echo "=== Last 100 lines of build log ==="
+        find .buildozer -name "build.log" -exec tail -100 {} \; || echo "No build log found"
