@@ -15,19 +15,26 @@ android.permissions = INTERNET,WAKE_LOCK,POST_NOTIFICATIONS,RECEIVE_BOOT_COMPLET
 log_level = 2
 warn_on_root = 1
 
-# Android ayarları
+# Android settings
 android.api = 33
 android.minapi = 24
 android.ndk = 25b
 android.accept_sdk_license = True
 android.enable_androidx = True
 
-# Firebase için Gradle
-android.gradle_dependencies = com.google.firebase:firebase-messaging:23.4.0
-android.gradle_repositories = google(), mavenCentral()
+# Firebase - ÇOK ÖNEMLİ!
+android.gradle_dependencies = com.google.android.gms:play-services-base:18.2.0,com.google.firebase:firebase-messaging:23.4.0,com.google.firebase:firebase-bom:32.7.0
 
-# Google Services plugin
+android.gradle_repositories = google(),mavenCentral(),maven { url 'https://maven.google.com' }
+
+# Google Services Plugin - ŞART!
 p4a.gradle_dependencies = classpath 'com.google.gms:google-services:4.4.0'
 
-# Meta data (bildirim kanalı)
+# Gradle build options
+android.add_gradle_repositories = google(),mavenCentral()
+
+# Packaging options
+android.add_compile_options = android { packagingOptions { exclude 'META-INF/DEPENDENCIES' exclude 'META-INF/LICENSE' exclude 'META-INF/NOTICE' } }
+
+# Meta data
 android.meta_data = com.google.firebase.messaging.default_notification_channel_id=default_channel
