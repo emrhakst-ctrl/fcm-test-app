@@ -1,40 +1,49 @@
-[app]
-title = Prayer Test
-package.name = prayertest
-package.domain = com.test
-source.dir = .
-source.include_exts = py,png,jpg,kv,json
-version = 1.0
-requirements = python3,kivy,pyjnius,android,requests
-orientation = portrait
-fullscreen = 0
-
-android.permissions = INTERNET,WAKE_LOCK,POST_NOTIFICATIONS,RECEIVE_BOOT_COMPLETED,ACCESS_NETWORK_STATE,VIBRATE
-
-[buildozer]
-log_level = 2
-warn_on_root = 1
-
-# Android settings
-android.api = 33
-android.minapi = 24
-android.ndk = 25b
-android.accept_sdk_license = True
-android.enable_androidx = True
-
-# Firebase - ÇOK ÖNEMLİ!
-android.gradle_dependencies = com.google.android.gms:play-services-base:18.2.0,com.google.firebase:firebase-messaging:23.4.0,com.google.firebase:firebase-bom:32.7.0
-
-android.gradle_repositories = google(),mavenCentral(),maven { url 'https://maven.google.com' }
-
-# Google Services Plugin - ŞART!
-p4a.gradle_dependencies = classpath 'com.google.gms:google-services:4.4.0'
-
-# Gradle build options
-android.add_gradle_repositories = google(),mavenCentral()
-
-# Packaging options
-android.add_compile_options = android { packagingOptions { exclude 'META-INF/DEPENDENCIES' exclude 'META-INF/LICENSE' exclude 'META-INF/NOTICE' } }
-
-# Meta data
-android.meta_data = com.google.firebase.messaging.default_notification_channel_id=default_channel
+diff --git a/buildozer.spec b/buildozer.spec
+index 5e20b103d95ce20655dc2cb247e362c584e97ef0..d11708560c15fc47b43f7e7ae3b5e2749aaae2b9 100644
+--- a/buildozer.spec
++++ b/buildozer.spec
+@@ -1,40 +1,41 @@
+ [app]
+ title = Prayer Test
+ package.name = prayertest
+ package.domain = com.test
+ source.dir = .
+ source.include_exts = py,png,jpg,kv,json
+ version = 1.0
+ requirements = python3,kivy,pyjnius,android,requests
+ orientation = portrait
+ fullscreen = 0
+ 
+ android.permissions = INTERNET,WAKE_LOCK,POST_NOTIFICATIONS,RECEIVE_BOOT_COMPLETED,ACCESS_NETWORK_STATE,VIBRATE
+ 
+ [buildozer]
+ log_level = 2
+ warn_on_root = 1
+ 
+ # Android settings
+ android.api = 33
+ android.minapi = 24
+ android.ndk = 25b
+ android.accept_sdk_license = True
+ android.enable_androidx = True
+ 
+ # Firebase - ÇOK ÖNEMLİ!
+-android.gradle_dependencies = com.google.android.gms:play-services-base:18.2.0,com.google.firebase:firebase-messaging:23.4.0,com.google.firebase:firebase-bom:32.7.0
++android.gradle_dependencies = com.google.android.gms:play-services-base:18.2.0,com.google.firebase:firebase-bom:32.7.0,com.google.firebase:firebase-messaging
+ 
+ android.gradle_repositories = google(),mavenCentral(),maven { url 'https://maven.google.com' }
+ 
+ # Google Services Plugin - ŞART!
+ p4a.gradle_dependencies = classpath 'com.google.gms:google-services:4.4.0'
++android.gradle_plugins = com.google.gms.google-services
+ 
+ # Gradle build options
+ android.add_gradle_repositories = google(),mavenCentral()
+ 
+ # Packaging options
+ android.add_compile_options = android { packagingOptions { exclude 'META-INF/DEPENDENCIES' exclude 'META-INF/LICENSE' exclude 'META-INF/NOTICE' } }
+ 
+ # Meta data
+-android.meta_data = com.google.firebase.messaging.default_notification_channel_id=default_channel
+\ No newline at end of file
++android.meta_data = com.google.firebase.messaging.default_notification_channel_id=default_channel
