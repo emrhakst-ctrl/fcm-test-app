@@ -23,12 +23,13 @@ android.accept_sdk_license = True
 android.enable_androidx = True
 
 # Firebase - ÇOK ÖNEMLİ!
-android.gradle_dependencies = com.google.android.gms:play-services-base:18.2.0,com.google.firebase:firebase-messaging:23.4.0,com.google.firebase:firebase-bom:32.7.0
+android.gradle_dependencies = com.google.android.gms:play-services-base:18.2.0,com.google.firebase:firebase-bom:32.7.0,com.google.firebase:firebase-messaging
 
 android.gradle_repositories = google(),mavenCentral(),maven { url 'https://maven.google.com' }
 
 # Google Services Plugin - ŞART!
 p4a.gradle_dependencies = classpath 'com.google.gms:google-services:4.4.0'
+android.gradle_plugins = com.google.gms.google-services
 
 # Gradle build options
 android.add_gradle_repositories = google(),mavenCentral()
